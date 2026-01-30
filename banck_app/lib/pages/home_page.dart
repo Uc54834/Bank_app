@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'account_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -10,14 +11,16 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {},
-        ),
+        leading: IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AccountPage()),
+              );
+            },
           ),
         ],
       ),
@@ -39,11 +42,7 @@ class HomePage extends StatelessWidget {
                 CircleAvatar(
                   radius: 45,
                   backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.person,
-                    size: 50,
-                    color: Color(0xFF0B4D78),
-                  ),
+                  child: Icon(Icons.person, size: 50, color: Color(0xFF0B4D78)),
                 ),
                 SizedBox(height: 10),
                 Text(
@@ -73,25 +72,16 @@ class HomePage extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
               boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                ),
+                BoxShadow(color: Colors.black12, blurRadius: 10),
               ],
             ),
             child: Column(
               children: [
-                const Text(
-                  'BALANCE',
-                  style: TextStyle(color: Colors.grey),
-                ),
+                const Text('BALANCE', style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 10),
                 const Text(
                   '\$4,180.20',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 15),
                 SizedBox(
@@ -127,10 +117,7 @@ class HomePage extends StatelessWidget {
                     color: Colors.grey,
                   ),
                 ),
-                Text(
-                  'more >>',
-                  style: TextStyle(color: Color(0xFF0B4D78)),
-                ),
+                Text('more >>', style: TextStyle(color: Color(0xFF0B4D78))),
               ],
             ),
           ),
