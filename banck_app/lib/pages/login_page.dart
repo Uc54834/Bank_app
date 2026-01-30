@@ -92,7 +92,11 @@ class LoginPage extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Text('LOG IN'),
+                child: const Text('LOG IN',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
               ),
             ),
 

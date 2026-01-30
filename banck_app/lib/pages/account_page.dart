@@ -10,15 +10,15 @@ class AccountPage extends StatelessWidget {
         backgroundColor: const Color(0xFF0B4D78),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 255, 255, 255),),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
-        title: const Text('ACCOUNT'),
+        title: const Text('ACCOUNT', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),),),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.settings, color: Color.fromARGB(255, 255, 255, 255),), onPressed: () {}),
         ],
       ),
       body: SingleChildScrollView(
@@ -64,7 +64,7 @@ class AccountPage extends StatelessWidget {
                   backgroundColor: const Color(0xFF0B4D78),
                 ),
                 onPressed: () {},
-                child: const Text('SAVE CHANGES'),
+                child: const Text('SAVE CHANGES', style: TextStyle(color: Colors.white,)),
               ),
             ),
 

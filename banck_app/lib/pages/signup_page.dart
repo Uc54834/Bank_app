@@ -79,7 +79,11 @@ class SignupPage extends StatelessWidget {
                   onPressed: () {
                     // TODO: Signup logic
                   },
-                  child: const Text('SIGN UP'),
+                  child: const Text('SIGN UP',
+                    style: TextStyle(
+                    color: Colors.white,
+                  ),
+                 ),
                 ),
                 const SizedBox(width: 15),
                 OutlinedButton(

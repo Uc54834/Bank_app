@@ -11,10 +11,10 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
+        leading: IconButton(icon: const Icon(Icons.menu, color: Color.fromARGB(255, 255, 255, 255),), onPressed: () {}),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, color: Color.fromARGB(255, 255, 255, 255),),
             onPressed: () {
               Navigator.push(
                 context,
@@ -77,7 +77,7 @@ class HomePage extends StatelessWidget {
             ),
             child: Column(
               children: [
-                const Text('BALANCE', style: TextStyle(color: Colors.grey)),
+                const Text('BALANCE', style: TextStyle(color: Colors.grey),),
                 const SizedBox(height: 10),
                 const Text(
                   '\$4,180.20',
@@ -95,7 +95,7 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     onPressed: () {},
-                    child: const Text('TRANSFER'),
+                    child: const Text('TRANSFER', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),),),
                   ),
                 ),
               ],
