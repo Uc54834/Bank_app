@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'signup_page.dart';
+import 'home_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -84,7 +85,12 @@ class LoginPage extends StatelessWidget {
                   backgroundColor: const Color(0xFF0B4D78),
                 ),
                 onPressed: () {
-                  // TODO: Implement login logic
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HomePage(),
+                    ),
+                  );
                 },
                 child: const Text('LOG IN'),
               ),
