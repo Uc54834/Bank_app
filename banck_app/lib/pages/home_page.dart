@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'account_page.dart';
 import 'add_card_page.dart';
 import 'transaction_page.dart';
+import 'transaction_history_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -14,19 +15,23 @@ class HomePage extends StatelessWidget {
         backgroundColor: const Color(0xFF0B4D78),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.add_card, color: Color.fromARGB(255, 255, 255, 255)),
+          icon: const Icon(
+            Icons.add_card,
+            color: Color.fromARGB(255, 255, 255, 255),
+          ),
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const AddCardPage(),
-              ),
+              MaterialPageRoute(builder: (context) => const AddCardPage()),
             );
           },
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings, color: Color.fromARGB(255, 255, 255, 255),),
+            icon: const Icon(
+              Icons.settings,
+              color: Color.fromARGB(255, 255, 255, 255),
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -89,7 +94,7 @@ class HomePage extends StatelessWidget {
             ),
             child: Column(
               children: [
-                const Text('BALANCE', style: TextStyle(color: Colors.grey),),
+                const Text('BALANCE', style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 10),
                 const Text(
                   '\$4,180.20',
@@ -114,7 +119,12 @@ class HomePage extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Text('TRANSFER', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),),),
+                    child: const Text(
+                      'TRANSFER',
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 255, 255, 255),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -128,15 +138,31 @@ class HomePage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   'LATEST TRANSACTIONS',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.grey,
                   ),
                 ),
-                Text('more >>', style: TextStyle(color: Color(0xFF0B4D78))),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TransactionHistoryPage(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'more >>',
+                    style: TextStyle(
+                      color: Colors.lightBlue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
