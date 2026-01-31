@@ -43,13 +43,25 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Color.fromARGB(255, 255, 255, 255),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('TRANSACTION'),
+        title: const Text(
+          'TRANSACTION',
+          style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+        ),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
+          IconButton(
+            icon: const Icon(
+              Icons.settings,
+              color: Color.fromARGB(255, 255, 255, 255),
+            ),
+            onPressed: () {},
+          ),
         ],
       ),
       body: Column(

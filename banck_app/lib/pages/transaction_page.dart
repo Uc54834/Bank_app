@@ -12,12 +12,13 @@ class TransactionPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 255, 255, 255),),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('TRANSACTION', 
+        title: const Text('TRANSFER MONEY', 
           style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                  ),),
+                  ),
+              ),
         centerTitle: true,
         actions: [
           IconButton(

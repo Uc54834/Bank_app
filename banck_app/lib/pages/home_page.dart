@@ -3,6 +3,7 @@ import 'account_page.dart';
 import 'add_card_page.dart';
 import 'transaction_page.dart';
 import 'transaction_history_page.dart';
+import 'payment.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -10,21 +11,18 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _buildAppDrawer(context),
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.add_card,
-            color: Color.fromARGB(255, 255, 255, 255),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
           ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddCardPage()),
-            );
-          },
         ),
         actions: [
           IconButton(
@@ -195,6 +193,74 @@ class HomePage extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildAppDrawer(BuildContext context) {
+    return Drawer(
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Color(0xFF0B4D78),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, size: 35),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'YOUR NAME',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                Text(
+                  'your-email@email.com',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.payment),
+            title: const Text('Payments'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PaymentPage()),
+              );
+            },
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.swap_horiz),
+            title: const Text('Transactions'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TransactionHistoryPage(),
+                ),
+              );
+            },
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.currency_exchange),
+            title: const Text('Exchange Money'),
+            onTap: () {
+              Navigator.pop(context);
+              // TODO: Navigate to BillsPage
+            },
           ),
         ],
       ),
