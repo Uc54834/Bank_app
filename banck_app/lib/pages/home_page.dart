@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'account_page.dart';
+import 'add_card_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -94,7 +95,14 @@ class HomePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AddCardPage(),
+                        ),
+                      );
+                    },
                     child: const Text('TRANSFER', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),),),
                   ),
                 ),
