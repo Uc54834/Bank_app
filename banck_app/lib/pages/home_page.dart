@@ -14,15 +14,16 @@ class HomePage extends StatelessWidget {
         backgroundColor: const Color(0xFF0B4D78),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: Color.fromARGB(255, 255, 255, 255),),
-           onPressed: () {
-             Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AddCardPage(),
-                        ),
-  );
-           }),
+          icon: const Icon(Icons.add_card, color: Color.fromARGB(255, 255, 255, 255)),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddCardPage(),
+              ),
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Color.fromARGB(255, 255, 255, 255),),
