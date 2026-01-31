@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'account_page.dart';
 import 'add_card_page.dart';
+import 'transaction_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -12,7 +13,16 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.menu, color: Color.fromARGB(255, 255, 255, 255),), onPressed: () {}),
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Color.fromARGB(255, 255, 255, 255),),
+           onPressed: () {
+             Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AddCardPage(),
+                        ),
+  );
+           }),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Color.fromARGB(255, 255, 255, 255),),
@@ -99,7 +109,7 @@ class HomePage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AddCardPage(),
+                          builder: (context) => const TransactionPage(),
                         ),
                       );
                     },
