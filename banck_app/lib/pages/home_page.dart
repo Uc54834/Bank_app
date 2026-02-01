@@ -4,6 +4,7 @@ import 'add_card_page.dart';
 import 'transaction_page.dart';
 import 'transaction_history_page.dart';
 import 'payment.dart';
+import 'exchange_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -198,15 +199,13 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildAppDrawer(BuildContext context) {
     return Drawer(
       child: Column(
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Color(0xFF0B4D78),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFF0B4D78)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
@@ -259,7 +258,10 @@ class HomePage extends StatelessWidget {
             title: const Text('Exchange Money'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Navigate to BillsPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ExchangePage()),
+              );
             },
           ),
         ],

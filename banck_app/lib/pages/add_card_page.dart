@@ -129,7 +129,10 @@ class AddCardPage extends StatelessWidget {
                   backgroundColor: const Color(0xFF0B4D78),
                 ),
                 onPressed: () {},
-                child: const Text('LINK CARD',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),)),
+                child: const Text(
+                  'LINK CARD',
+                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                ),
               ),
             ),
 
