@@ -1,8 +1,58 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_page.dart';
 
-class SignupPage extends StatelessWidget {
+class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
+
+  @override
+  State<SignupPage> createState() => _SignupPageState();
+}
+
+class _SignupPageState extends State<SignupPage> {
+  final _nameController = TextEditingController();
+  final _bankController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  final supabase = Supabase.instance.client;
+  bool isLoading = false;
+
+  Future<void> _signUp() async {
+    setState(() => isLoading = true);
+
+    try {
+      await supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        data: {
+          'name': _nameController.text.trim(),
+          'bank_account': _bankController.text.trim(),
+        },
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Signup successful! Please log in.')),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unexpected error occurred')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,68 +86,26 @@ class SignupPage extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            _buildTextField('Your Name'),
-            _buildTextField('Bank Account'),
-            _buildTextField('Email'),
-            _buildTextField('Password', isPassword: true),
+            _buildTextField('Your Name', _nameController),
+            _buildTextField('Bank Account', _bankController),
+            _buildTextField('Email', _emailController),
+            _buildTextField('Password', _passwordController, isPassword: true),
 
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-              child: Text(
-                'Use 6 characters with a mix of letters, numbers & symbols.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ),
+            const SizedBox(height: 20),
 
-            // Terms
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              child: Row(
-                children: const [
-                  Checkbox(value: false, onChanged: null),
-                  Expanded(
-                    child: Text(
-                      "By signing up, you agree to Bank's Term of Use & Privacy Policy.",
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0B4D78),
+                minimumSize: const Size(200, 45),
               ),
+              onPressed: isLoading ? null : _signUp,
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('SIGN UP', style: TextStyle(color: Colors.white)),
             ),
 
             const SizedBox(height: 20),
 
-            // Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0B4D78),
-                    minimumSize: const Size(120, 45),
-                  ),
-                  onPressed: () {
-                    // TODO: Signup logic
-                  },
-                  child: const Text('SIGN UP',
-                    style: TextStyle(
-                    color: Colors.white,
-                  ),
-                 ),
-                ),
-                const SizedBox(width: 15),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text('CANCEL'),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Back to Login
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -121,10 +129,15 @@ class SignupPage extends StatelessWidget {
     );
   }
 
-  static Widget _buildTextField(String hint, {bool isPassword = false}) {
+  Widget _buildTextField(
+    String hint,
+    TextEditingController controller, {
+    bool isPassword = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
       child: TextField(
+        controller: controller,
         obscureText: isPassword,
         decoration: InputDecoration(
           hintText: hint,
