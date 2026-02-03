@@ -1,9 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'signup_page.dart';
 import 'home_page.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  final supabase = Supabase.instance.client;
+  bool isLoading = false;
+
+  Future<void> _login() async {
+    setState(() => isLoading = true);
+
+    try {
+      await supabase.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login failed')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,23 +74,20 @@ class LoginPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 20),
-                  Icon(
-                    Icons.account_balance,
-                    color: Colors.white,
-                    size: 100,
-                  ),
+                  Icon(Icons.account_balance, color: Colors.white, size: 100),
                 ],
               ),
             ),
 
             const SizedBox(height: 40),
 
-            // Username
+            // Email
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: TextField(
+                controller: _emailController,
                 decoration: InputDecoration(
-                  hintText: 'Username or Email',
+                  hintText: 'Email',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -64,6 +101,7 @@ class LoginPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: TextField(
+                controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Password',
@@ -84,40 +122,28 @@ class LoginPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0B4D78),
                 ),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HomePage(),
-                    ),
-                  );
-                },
-                child: const Text('LOG IN',
-                style: TextStyle(
-                  color: Colors.white,
-                ),
-              ),
+                onPressed: isLoading ? null : _login,
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'LOG IN',
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ),
 
             const SizedBox(height: 15),
 
-            // Forgot Password (optional placeholder)
             TextButton(
-              onPressed: () {
-                // TODO: Navigate to forgot password page
-              },
+              onPressed: () {},
               child: const Text('Forgot Password?'),
             ),
 
-            // Sign Up link (NO direct import)
             TextButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SignupPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const SignupPage()),
                 );
               },
               child: const Text('New to Bank Apps? Sign Up'),
