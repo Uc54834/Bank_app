@@ -8,75 +8,118 @@ class ExchangePage extends StatefulWidget {
 }
 
 class _ExchangePageState extends State<ExchangePage> {
-  String fromCurrency = 'USD';
-  String toCurrency = 'LKR';
+  String fromCurrency = '\$';
+  String toCurrency = '£';
+
+  String inputAmount = '';
+
+  // Simple demo exchange rates
+  final Map<String, double> rates = {
+    '\$': 1.0,
+    '£': 0.78,
+    '€': 0.92,
+    '₨': 309.50,
+  };
+
+  double get convertedAmount {
+    if (inputAmount.isEmpty) return 0.0;
+
+    final value = double.tryParse(inputAmount) ?? 0.0;
+    return value * (rates[toCurrency]! / rates[fromCurrency]!);
+  }
+
+  void onKeyPressed(String key) {
+    setState(() {
+      if (key == 'X') {
+        if (inputAmount.isNotEmpty) {
+          inputAmount =
+              inputAmount.substring(0, inputAmount.length - 1);
+        }
+      } else {
+        inputAmount += key;
+      }
+    });
+  }
+
+  void swapCurrencies() {
+    setState(() {
+      final temp = fromCurrency;
+      fromCurrency = toCurrency;
+      toCurrency = temp;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+        leading: const Icon(Icons.arrow_back, color: Colors.white),
+        title: const Text(
+          'EXCHANGE',
+          style: TextStyle(color: Colors.white),
         ),
-        title: const Text('EXCHANGE'),
         centerTitle: true,
-        actions: [
-          IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
+        actions: const [
+          Icon(Icons.settings, color: Colors.white),
         ],
       ),
       body: Column(
         children: [
           const SizedBox(height: 25),
 
-          // Currency icons
+          // Currency icons & swap
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Color(0xFF0B4D78),
-                child: Text(
-                  'USD',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
+            children: [
+              _currencyCircle(fromCurrency, const Color(0xFF0B4D78)),
+              IconButton(
+                icon: const Icon(
+                  Icons.sync_alt,
+                  size: 35,
+                  color: Color(0xFF0B4D78),
                 ),
+                onPressed: swapCurrencies,
               ),
-              SizedBox(width: 15),
-              Icon(Icons.sync_alt, size: 40, color: Color(0xFF0B4D78)),
-              SizedBox(width: 15),
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.lightBlue,
-                child: Text(
-                  'LKR',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
-                ),
-              ),
+              _currencyCircle(toCurrency, Colors.lightBlue),
             ],
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 25),
 
-          _amountField(fromCurrency, '1,000.00', true),
+          // From field
+          _amountField(
+            currency: fromCurrency,
+            value: inputAmount.isEmpty ? '0.00' : inputAmount,
+            onCurrencyChanged: (val) {
+              setState(() => fromCurrency = val!);
+            },
+          ),
 
-          const SizedBox(height: 15),
+          const SizedBox(height: 10),
           const Text('CONVERT TO', style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 10),
+
+          // To field
+          _amountField(
+            currency: toCurrency,
+            value: convertedAmount.toStringAsFixed(2),
+            onCurrencyChanged: (val) {
+              setState(() => toCurrency = val!);
+            },
+          ),
+
           const SizedBox(height: 15),
 
-          _amountField(toCurrency, '780.00', false),
-
-          const SizedBox(height: 20),
-
-          // Number pad
+          // Keypad
           Expanded(
             child: GridView.count(
               crossAxisCount: 3,
               padding: const EdgeInsets.all(10),
               childAspectRatio: 1.4,
               children: [
-                ...List.generate(9, (index) => _keyButton('${index + 1}')),
+                ...List.generate(9, (i) =>
+                    _keyButton('${i + 1}')),
                 _keyButton('00'),
                 _keyButton('0'),
                 _keyButton('X'),
@@ -88,8 +131,24 @@ class _ExchangePageState extends State<ExchangePage> {
     );
   }
 
-  // Amount field widget
-  Widget _amountField(String currency, String value, bool isFrom) {
+  // ---------------- Widgets ----------------
+
+  Widget _currencyCircle(String symbol, Color color) {
+    return CircleAvatar(
+      radius: 30,
+      backgroundColor: color,
+      child: Text(
+        symbol,
+        style: const TextStyle(color: Colors.white, fontSize: 24),
+      ),
+    );
+  }
+
+  Widget _amountField({
+    required String currency,
+    required String value,
+    required ValueChanged<String?> onCurrencyChanged,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 30),
       child: Row(
@@ -97,19 +156,12 @@ class _ExchangePageState extends State<ExchangePage> {
           DropdownButton<String>(
             value: currency,
             items: const [
-              DropdownMenuItem(value: 'USD', child: Text('USD')),
-              DropdownMenuItem(value: 'LKR', child: Text('LKR')),
-              DropdownMenuItem(value: 'EURO', child: Text('EURO')),
+              DropdownMenuItem(value: '\$', child: Text('\$')),
+              DropdownMenuItem(value: '£', child: Text('£')),
+              DropdownMenuItem(value: '€', child: Text('€')),
+              DropdownMenuItem(value: '₨', child: Text('₨')),
             ],
-            onChanged: (val) {
-              setState(() {
-                if (isFrom) {
-                  fromCurrency = val!;
-                } else {
-                  toCurrency = val!;
-                }
-              });
-            },
+            onChanged: onCurrencyChanged,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -135,24 +187,21 @@ class _ExchangePageState extends State<ExchangePage> {
     );
   }
 
-  // Number pad button (WHITE text)
   Widget _keyButton(String text) {
     return Padding(
       padding: const EdgeInsets.all(6),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF0B4D78),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          foregroundColor: Colors.white,
         ),
-        onPressed: () {},
+        onPressed: () => onKeyPressed(text),
         child: Text(
           text,
           style: const TextStyle(
             fontSize: 22,
-            color: Colors.white, // ✅ WHITE NUMBER
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
       ),
