@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'pages/login_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://telpibbkfmaxvguomppx.supabase.co',
+    anonKey: 'sb_publishable_EgmPOB49G8bljbw8am5I6Q_hj5_h-1v',
+  );
   runApp(const MyApp());
 }
 
