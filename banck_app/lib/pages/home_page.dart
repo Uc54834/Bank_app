@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'account_page.dart';
-import 'add_card_page.dart';
 import 'transaction_page.dart';
 import 'transaction_history_page.dart';
 import 'payment.dart';

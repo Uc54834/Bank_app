@@ -32,8 +32,7 @@ class _ExchangePageState extends State<ExchangePage> {
     setState(() {
       if (key == 'X') {
         if (inputAmount.isNotEmpty) {
-          inputAmount =
-              inputAmount.substring(0, inputAmount.length - 1);
+          inputAmount = inputAmount.substring(0, inputAmount.length - 1);
         }
       } else {
         inputAmount += key;
@@ -55,14 +54,9 @@ class _ExchangePageState extends State<ExchangePage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
         leading: const Icon(Icons.arrow_back, color: Colors.white),
-        title: const Text(
-          'EXCHANGE',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('EXCHANGE', style: TextStyle(color: Colors.white)),
         centerTitle: true,
-        actions: const [
-          Icon(Icons.settings, color: Colors.white),
-        ],
+        actions: const [Icon(Icons.settings, color: Colors.white)],
       ),
       body: Column(
         children: [
@@ -118,8 +112,7 @@ class _ExchangePageState extends State<ExchangePage> {
               padding: const EdgeInsets.all(10),
               childAspectRatio: 1.4,
               children: [
-                ...List.generate(9, (i) =>
-                    _keyButton('${i + 1}')),
+                ...List.generate(9, (i) => _keyButton('${i + 1}')),
                 _keyButton('00'),
                 _keyButton('0'),
                 _keyButton('X'),
