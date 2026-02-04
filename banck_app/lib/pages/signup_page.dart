@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'login_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -15,7 +14,7 @@ class _SignupPageState extends State<SignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final supabase = Supabase.instance.client;
+  final SupabaseClient supabase = Supabase.instance.client;
   bool isLoading = false;
 
   Future<void> _signUp() async {
@@ -34,13 +33,13 @@ class _SignupPageState extends State<SignupPage> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Signup successful! Please log in.')),
+        const SnackBar(
+          content: Text('Signup successful! Please log in.'),
+        ),
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+      // ✅ Go back to Login page
+      Navigator.pop(context);
     } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
@@ -52,6 +51,15 @@ class _SignupPageState extends State<SignupPage> {
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _bankController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -89,7 +97,11 @@ class _SignupPageState extends State<SignupPage> {
             _buildTextField('Your Name', _nameController),
             _buildTextField('Bank Account', _bankController),
             _buildTextField('Email', _emailController),
-            _buildTextField('Password', _passwordController, isPassword: true),
+            _buildTextField(
+              'Password',
+              _passwordController,
+              isPassword: true,
+            ),
 
             const SizedBox(height: 20),
 
@@ -101,7 +113,10 @@ class _SignupPageState extends State<SignupPage> {
               onPressed: isLoading ? null : _signUp,
               child: isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('SIGN UP', style: TextStyle(color: Colors.white)),
+                  : const Text(
+                      'SIGN UP',
+                      style: TextStyle(color: Colors.white),
+                    ),
             ),
 
             const SizedBox(height: 20),
@@ -111,14 +126,7 @@ class _SignupPageState extends State<SignupPage> {
               children: [
                 const Text('Already signed up? '),
                 TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
-                      ),
-                    );
-                  },
+                  onPressed: () => Navigator.pop(context),
                   child: const Text('Log in'),
                 ),
               ],
@@ -141,7 +149,9 @@ class _SignupPageState extends State<SignupPage> {
         obscureText: isPassword,
         decoration: InputDecoration(
           hintText: hint,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
     );

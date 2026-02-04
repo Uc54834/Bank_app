@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'account_page.dart';
 import 'transaction_page.dart';
 import 'transaction_history_page.dart';
@@ -35,6 +36,12 @@ class HomePage extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (context) => const AccountPage()),
               );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
             },
           ),
         ],
