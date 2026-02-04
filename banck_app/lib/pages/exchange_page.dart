@@ -1,5 +1,5 @@
+import 'package:banck_app/pages/home_page.dart';
 import 'package:flutter/material.dart';
-
 class ExchangePage extends StatefulWidget {
   const ExchangePage({super.key});
 
@@ -53,7 +53,17 @@ class _ExchangePageState extends State<ExchangePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
-        leading: const Icon(Icons.arrow_back, color: Colors.white),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () async {
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+                (route) => false,
+              );
+            },
+          ),
         title: const Text('EXCHANGE', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         actions: const [Icon(Icons.settings, color: Colors.white)],

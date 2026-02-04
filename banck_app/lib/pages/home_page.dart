@@ -1,5 +1,7 @@
+import 'package:banck_app/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'account_page.dart';
 import 'transaction_page.dart';
 import 'transaction_history_page.dart';
@@ -11,8 +13,15 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    // Fallbacks just in case
+    final String userName =
+        user?.userMetadata?['name']?.toString() ?? 'User';
+    final String userEmail = user?.email ?? '';
+
     return Scaffold(
-      drawer: _buildAppDrawer(context),
+      drawer: _buildAppDrawer(context, userName, userEmail),
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
@@ -20,21 +29,16 @@ class HomePage extends StatelessWidget {
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.settings,
-              color: Color.fromARGB(255, 255, 255, 255),
-            ),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const AccountPage()),
+                MaterialPageRoute(builder: (_) => const AccountPage()),
               );
             },
           ),
@@ -42,13 +46,20 @@ class HomePage extends StatelessWidget {
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
               await Supabase.instance.client.auth.signOut();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
             },
           ),
         ],
       ),
+
       body: Column(
         children: [
-          // Top Profile Section
+          // 🔹 TOP PROFILE SECTION
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(bottom: 25),
@@ -60,25 +71,26 @@ class HomePage extends StatelessWidget {
               ),
             ),
             child: Column(
-              children: const [
-                CircleAvatar(
+              children: [
+                const CircleAvatar(
                   radius: 45,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 50, color: Color(0xFF0B4D78)),
+                  child: Icon(Icons.person,
+                      size: 50, color: Color(0xFF0B4D78)),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
-                  'YOUR NAME',
-                  style: TextStyle(
+                  userName.toUpperCase(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 5),
+                const SizedBox(height: 5),
                 Text(
-                  'your-email@email.com',
-                  style: TextStyle(color: Colors.white70),
+                  userEmail,
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ],
             ),
@@ -86,7 +98,7 @@ class HomePage extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Balance Card
+          // BALANCE CARD
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 30),
             padding: const EdgeInsets.all(20),
@@ -120,15 +132,13 @@ class HomePage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const TransactionPage(),
+                          builder: (_) => const TransactionPage(),
                         ),
                       );
                     },
                     child: const Text(
                       'TRANSFER',
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                      ),
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 ),
@@ -138,7 +148,7 @@ class HomePage extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          // Latest Transactions
+          // LATEST TRANSACTIONS
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Row(
@@ -156,7 +166,7 @@ class HomePage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const TransactionHistoryPage(),
+                        builder: (_) => const TransactionHistoryPage(),
                       ),
                     );
                   },
@@ -174,31 +184,10 @@ class HomePage extends StatelessWidget {
 
           const SizedBox(height: 15),
 
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              children: const [
-                TransactionTile(
-                  title: 'Lorem Ipsum Company',
-                  subtitle: 'Received payment',
-                  amount: '\$2,030.80',
-                ),
-                TransactionTile(
-                  title: 'Auctor Elit Ltd.',
-                  subtitle: 'Transfer money',
-                  amount: '-\$450.00',
-                ),
-                TransactionTile(
-                  title: 'Lectus Sit Amet est',
-                  subtitle: 'Gas & electricity payment',
-                  amount: '-\$239.50',
-                ),
-                TransactionTile(
-                  title: 'Congue Quisque',
-                  subtitle: 'Withdraw money',
-                  amount: '-\$1,500.00',
-                ),
-              ],
+          const Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30),
+              child: _TransactionList(),
             ),
           ),
         ],
@@ -206,7 +195,10 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildAppDrawer(BuildContext context) {
+  // ---------------- DRAWER ----------------
+
+  Widget _buildAppDrawer(
+      BuildContext context, String name, String email) {
     return Drawer(
       child: Column(
         children: [
@@ -214,20 +206,20 @@ class HomePage extends StatelessWidget {
             decoration: const BoxDecoration(color: Color(0xFF0B4D78)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                CircleAvatar(
+              children: [
+                const CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
                   child: Icon(Icons.person, size: 35),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
-                  'YOUR NAME',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
                 Text(
-                  'your-email@email.com',
-                  style: TextStyle(color: Colors.white70),
+                  email,
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ],
             ),
@@ -237,10 +229,9 @@ class HomePage extends StatelessWidget {
             leading: const Icon(Icons.payment),
             title: const Text('Payments'),
             onTap: () {
-              Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => PaymentPage()),
+                MaterialPageRoute(builder: (_) => PaymentPage()),
               );
             },
           ),
@@ -249,11 +240,10 @@ class HomePage extends StatelessWidget {
             leading: const Icon(Icons.swap_horiz),
             title: const Text('Transactions'),
             onTap: () {
-              Navigator.pop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const TransactionHistoryPage(),
+                  builder: (_) => const TransactionHistoryPage(),
                 ),
               );
             },
@@ -263,15 +253,48 @@ class HomePage extends StatelessWidget {
             leading: const Icon(Icons.currency_exchange),
             title: const Text('Exchange Money'),
             onTap: () {
-              Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ExchangePage()),
+                MaterialPageRoute(builder: (_) => const ExchangePage()),
               );
             },
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------- TRANSACTION LIST ----------------
+
+class _TransactionList extends StatelessWidget {
+  const _TransactionList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: const [
+        TransactionTile(
+          title: 'Lorem Ipsum Company',
+          subtitle: 'Received payment',
+          amount: '\$2,030.80',
+        ),
+        TransactionTile(
+          title: 'Auctor Elit Ltd.',
+          subtitle: 'Transfer money',
+          amount: '-\$450.00',
+        ),
+        TransactionTile(
+          title: 'Lectus Sit Amet est',
+          subtitle: 'Gas & electricity payment',
+          amount: '-\$239.50',
+        ),
+        TransactionTile(
+          title: 'Congue Quisque',
+          subtitle: 'Withdraw money',
+          amount: '-\$1,500.00',
+        ),
+      ],
     );
   }
 }
