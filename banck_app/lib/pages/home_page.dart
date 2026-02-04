@@ -1,27 +1,47 @@
-import 'package:banck_app/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'login_page.dart';
 import 'account_page.dart';
 import 'transaction_page.dart';
 import 'transaction_history_page.dart';
 import 'payment.dart';
 import 'exchange_page.dart';
+import '/services/profile_service.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String name = 'User';
+  String email = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await ProfileService.getProfile();
     final user = Supabase.instance.client.auth.currentUser;
 
-    // Fallbacks just in case
-    final String userName =
-        user?.userMetadata?['name']?.toString() ?? 'User';
-    final String userEmail = user?.email ?? '';
+    if (!mounted) return;
 
+    setState(() {
+      name = profile?['name'] ?? 'User';
+      email = user?.email ?? '';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      drawer: _buildAppDrawer(context, userName, userEmail),
+      drawer: _buildAppDrawer(context, name, email),
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B4D78),
@@ -46,7 +66,9 @@ class HomePage extends StatelessWidget {
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
               await Supabase.instance.client.auth.signOut();
+
               if (!context.mounted) return;
+
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -80,7 +102,7 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  userName.toUpperCase(),
+                  name.toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -89,7 +111,7 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  userEmail,
+                  email,
                   style: const TextStyle(color: Colors.white70),
                 ),
               ],

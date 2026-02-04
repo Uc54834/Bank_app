@@ -21,29 +21,31 @@ class _SignupPageState extends State<SignupPage> {
     setState(() => isLoading = true);
 
     try {
-      await supabase.auth.signUp(
+      final response = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-        data: {
-          'name': _nameController.text.trim(),
-          'bank_account': _bankController.text.trim(),
-        },
       );
+
+      final user = response.user;
+      if (user == null) throw Exception('User not created');
+
+      // ✅ Insert profile data
+      await supabase.from('profiles').insert({
+        'id': user.id,
+        'name': _nameController.text.trim(),
+        'bank_account': _bankController.text.trim(),
+      });
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Signup successful! Please log in.'),
-        ),
+        const SnackBar(content: Text('Signup successful! Please log in.')),
       );
 
-      // ✅ Go back to Login page
       Navigator.pop(context);
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unexpected error occurred')),
