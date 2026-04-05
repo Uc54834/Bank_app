@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../components/app_cards.dart';
+import '../components/text_fields.dart';
+import '../components/primary_button.dart';
+import '../utils/responsive.dart';
 
 class AccountPage extends StatelessWidget {
   const AccountPage({super.key});
@@ -6,136 +11,334 @@ class AccountPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B4D78),
+        backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 255, 255, 255),),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('ACCOUNT', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),),),
-        centerTitle: true,
-        actions: [
-          IconButton(icon: const Icon(Icons.settings, color: Color.fromARGB(255, 255, 255, 255),), onPressed: () {}),
-        ],
+        title: const Text(
+          'Account Settings',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ResponsiveLayout(
+            mobile: _buildMobileLayout(context),
+            tablet: _buildDesktopLayout(context),
+            desktop: _buildDesktopLayout(context),
+            wide: _buildDesktopLayout(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        ProfileHeader(name: 'KARINA BUYS', email: 'karina_buys@email.com'),
+        const SizedBox(height: 24),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Personal Information',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                label: 'FULL NAME',
+                hint: 'Enter your name',
+                controller: TextEditingController(text: 'KARINA BUYS'),
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                label: 'EMAIL',
+                hint: 'Enter your email',
+                controller: TextEditingController(
+                  text: 'karina_buys@email.com',
+                ),
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                label: 'PHONE NUMBER',
+                hint: 'Enter your phone number',
+                controller: TextEditingController(text: '+44 558 257 68 005'),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'ADDRESS',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your address',
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.outline,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Account Details',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                label: 'BANK ACCOUNT NUMBER',
+                hint: 'Enter bank account number',
+                controller: TextEditingController(text: '00 123 456'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        PrimaryButton(text: 'SAVE CHANGES', onPressed: () {}),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout(BuildContext context) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 900),
         child: Column(
           children: [
-            const SizedBox(height: 20),
-
-            // Profile icon
-            const CircleAvatar(
-              radius: 45,
-              backgroundColor: Color(0xFF0B4D78),
-              child: Icon(Icons.person, size: 50, color: Colors.white),
-            ),
-
-            const SizedBox(height: 30),
-
-            _buildField(label: 'YOUR NAME', value: 'KARINA BUYS'),
-            _buildField(label: 'BANK ACCOUNT', value: '00 123 456'),
-            _buildField(label: 'EMAIL', value: 'karina_buys@email.com'),
-            _buildField(label: 'PASSWORD', value: '********', isPassword: true),
-            _buildField(label: 'PHONE NUMBER', value: '+44 558 257 68 005'),
-            _buildAddressField(),
-
-            const SizedBox(height: 10),
-
-            // Note
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30),
-              child: Text(
-                '* Nunc faucibus a pellentesque sit amet porttitor eget dolor morbi non.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ),
-
-            const SizedBox(height: 25),
-
-            // Save button
-            SizedBox(
-              width: 200,
-              height: 45,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0B4D78),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primary, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.primary,
+                    size: 44,
+                  ),
                 ),
-                onPressed: () {},
-                child: const Text('SAVE CHANGES', style: TextStyle(color: Colors.white,)),
-              ),
+                const SizedBox(width: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'KARINA BUYS',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'karina_buys@email.com',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-
-            const SizedBox(height: 30),
+            const SizedBox(height: 32),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Personal Information',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        AppTextField(
+                          label: 'FULL NAME',
+                          hint: 'Enter your name',
+                          controller: TextEditingController(
+                            text: 'KARINA BUYS',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        AppTextField(
+                          label: 'EMAIL',
+                          hint: 'Enter your email',
+                          controller: TextEditingController(
+                            text: 'karina_buys@email.com',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        AppTextField(
+                          label: 'PHONE NUMBER',
+                          hint: 'Enter your phone number',
+                          controller: TextEditingController(
+                            text: '+44 558 257 68 005',
+                          ),
+                          keyboardType: TextInputType.phone,
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'ADDRESS',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            TextField(
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                hintText: 'Enter your address',
+                                filled: true,
+                                fillColor: AppColors.surface,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.outline,
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                SizedBox(
+                  width: 300,
+                  child: Column(
+                    children: [
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Account Details',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildInfoRow('Account Number', '00 123 456'),
+                            const SizedBox(height: 12),
+                            _buildInfoRow('Account Type', 'Premium'),
+                            const SizedBox(height: 12),
+                            _buildInfoRow('Branch', 'Main Street'),
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              'Status',
+                              'Active',
+                              valueColor: AppColors.success,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      PrimaryButton(text: 'SAVE CHANGES', onPressed: () {}),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  // Reusable input field
-  static Widget _buildField({
-    required String label,
-    required String value,
-    bool isPassword = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
+  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? AppColors.textPrimary,
           ),
-          const SizedBox(height: 5),
-          TextField(
-            obscureText: isPassword,
-            decoration: InputDecoration(
-              hintText: value,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _buildAddressField() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'YOUR ADDRESS',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 5),
-          TextField(
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText:
-                  'Lorem ipsum 22nd street,\nTincidunt ut laoreet\n5N 27T - Lorem Ipsum',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

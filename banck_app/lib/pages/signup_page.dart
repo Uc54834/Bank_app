@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import '../theme/app_colors.dart';
+import '../components/primary_button.dart';
+import '../components/text_fields.dart';
+import '../utils/responsive.dart';
+import '../services/profile_service.dart';
+import '../services/account_service.dart';
+import '../services/transaction_service.dart';
+import 'login_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -13,42 +21,95 @@ class _SignupPageState extends State<SignupPage> {
   final _bankController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  final SupabaseClient supabase = Supabase.instance.client;
   bool isLoading = false;
+  bool _isObscure = true;
 
   Future<void> _signUp() async {
     setState(() => isLoading = true);
 
     try {
-      final response = await supabase.auth.signUp(
+      print('=== SIGNUP START ===');
+
+      // Validate password match
+      if (_passwordController.text.trim() !=
+          _confirmPasswordController.text.trim()) {
+        print('Passwords do not match');
+        throw Exception('Passwords do not match');
+      }
+      print('Password validation passed');
+
+      // Check if email already exists
+      print('Checking if email exists: ${_emailController.text.trim()}');
+      final emailExists = await ProfileService.emailExists(
+        _emailController.text.trim(),
+      );
+      print('Email exists: $emailExists');
+      if (emailExists) {
+        print('Email already registered');
+        throw Exception('Email already registered');
+      }
+
+      // Generate UUID for user
+      final userId = const Uuid().v4();
+      print('Generated userId: $userId');
+
+      // Create profile
+      print('Creating profile...');
+      try {
+        final success = await ProfileService.createProfile(
+        id: userId,
+        name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
+        bankAccount: _bankController.text.trim(),
       );
+      print('Profile created: $success');
 
-      final user = response.user;
-      if (user == null) throw Exception('User not created');
+        if (!success) {
+          print(success);
+          throw Exception('Failed to create profile');
+        }
+      } catch (e) {
+        print(e);
+      }
 
-      // ✅ Insert profile data
-      await supabase.from('profiles').insert({
-        'id': user.id,
-        'name': _nameController.text.trim(),
-        'bank_account': _bankController.text.trim(),
-      });
+      // Create account
+      print('Creating account...');
+      await AccountService.createAccount();
+      print('Account created');
+
+      // Create initial 200Rs credit transaction
+      final account = await AccountService.getAccount();
+      print('Account: $account');
+
+      if (account != null) {
+        await TransactionService.createTransaction(
+          type: 'credit',
+          amount: 200.0,
+          description: 'Initial deposit',
+        );
+        print('Initial transaction created');
+      }
+
+      print('=== SIGNUP SUCCESS ===');
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Signup successful! Please log in.')),
+        const SnackBar(
+          content: Text('Account created successfully! Please login.'),
+        ),
       );
 
       Navigator.pop(context);
-    } on AuthException catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
+    } catch (e, stack) {
+      print('=== SIGNUP ERROR ===');
+      print('Error: $e');
+      print('Stack: $stack');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unexpected error occurred')),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     } finally {
       setState(() => isLoading = false);
@@ -61,101 +122,441 @@ class _SignupPageState extends State<SignupPage> {
     _bankController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              height: 260,
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0B4D78),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
+      body: ResponsiveLayout(
+        mobile: _buildMobileLayout(),
+        tablet: _buildDesktopLayout(),
+        desktop: _buildDesktopLayout(),
+        wide: _buildDesktopLayout(),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: AppColors.primaryGradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.account_balance, color: Colors.white, size: 80),
-                  SizedBox(height: 10),
-                  Text(
-                    'Connect to your bank account',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
               ),
             ),
-
-            const SizedBox(height: 30),
-
-            _buildTextField('Your Name', _nameController),
-            _buildTextField('Bank Account', _bankController),
-            _buildTextField('Email', _emailController),
-            _buildTextField(
-              'Password',
-              _passwordController,
-              isPassword: true,
-            ),
-
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0B4D78),
-                minimumSize: const Size(200, 45),
-              ),
-              onPressed: isLoading ? null : _signUp,
-              child: isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      'SIGN UP',
-                      style: TextStyle(color: Colors.white),
-                    ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Column(
               children: [
-                const Text('Already signed up? '),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Log in'),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'CREATE ACCOUNT',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Join Bank App today',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                AppTextField(
+                  label: 'FULL NAME',
+                  hint: 'Enter your full name',
+                  controller: _nameController,
+                  prefixIcon: const Icon(Icons.person_outline),
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'BANK ACCOUNT',
+                  hint: 'Enter your bank account number',
+                  controller: _bankController,
+                  keyboardType: TextInputType.number,
+                  prefixIcon: const Icon(Icons.account_balance_outlined),
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'EMAIL',
+                  hint: 'Enter your email',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: const Icon(Icons.email_outlined),
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'PASSWORD',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _isObscure,
+                      decoration: InputDecoration(
+                        hintText: 'Create a password',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isObscure
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: AppColors.textSecondary,
+                          ),
+                          onPressed: () =>
+                              setState(() => _isObscure = !_isObscure),
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).cardColor,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: AppColors.outline,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'CONFIRM PASSWORD',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: _isObscure,
+                      decoration: InputDecoration(
+                        hintText: 'Confirm your password',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        filled: true,
+                        fillColor: Theme.of(context).cardColor,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: AppColors.outline,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  text: 'CREATE ACCOUNT',
+                  onPressed: isLoading ? null : _signUp,
+                  isLoading: isLoading,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Already have an account? ',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Sign In',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(48),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: AppColors.primaryGradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Icon(Icons.account_balance, color: Colors.white, size: 80),
+                    SizedBox(height: 32),
+                    Text(
+                      'JOIN BANK APP',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Create your account and start\nmanaging your finances today.',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                color: AppColors.background,
+                padding: const EdgeInsets.all(48),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Create Account',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Fill in your details to get started',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      AppTextField(
+                        label: 'FULL NAME',
+                        hint: 'Enter your full name',
+                        controller: _nameController,
+                        prefixIcon: const Icon(Icons.person_outline),
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        label: 'BANK ACCOUNT',
+                        hint: 'Enter your bank account number',
+                        controller: _bankController,
+                        keyboardType: TextInputType.number,
+                        prefixIcon: const Icon(Icons.account_balance_outlined),
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        label: 'EMAIL',
+                        hint: 'Enter your email',
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        prefixIcon: const Icon(Icons.email_outlined),
+                      ),
+                      const SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'PASSWORD',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _isObscure,
+                            decoration: InputDecoration(
+                              hintText: 'Create a password',
+                              prefixIcon: const Icon(Icons.lock_outlined),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _isObscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: AppColors.textSecondary,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _isObscure = !_isObscure),
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: AppColors.outline,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CONFIRM PASSWORD',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            obscureText: _isObscure,
+                            decoration: InputDecoration(
+                              hintText: 'Confirm your password',
+                              prefixIcon: const Icon(Icons.lock_outlined),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: AppColors.outline,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      PrimaryButton(
+                        text: 'CREATE ACCOUNT',
+                        onPressed: isLoading ? null : () => _signUp(),
+                        isLoading: isLoading,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Already have an account? ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'Sign In',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildTextField(
-    String hint,
-    TextEditingController controller, {
-    bool isPassword = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword,
-        decoration: InputDecoration(
-          hintText: hint,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      ),
-    );
-  }
 }
+

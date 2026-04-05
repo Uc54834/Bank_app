@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../components/app_cards.dart';
+import '../services/transaction_service.dart';
+import '../utils/responsive.dart';
 
 class TransactionHistoryPage extends StatefulWidget {
   const TransactionHistoryPage({super.key});
@@ -9,165 +13,225 @@ class TransactionHistoryPage extends StatefulWidget {
 
 class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   int selectedTab = 0;
+  bool isLoading = true;
+  List<Transaction> transactions = [];
+  List<Transaction> filteredTransactions = [];
 
-  final List<Map<String, dynamic>> transactions = [
-    {
-      'title': 'Lorem Ipsum Company',
-      'subtitle': 'Received payment',
-      'amount': '+\$2,030.80',
-      'color': Colors.blue,
-    },
-    {
-      'title': 'Auctor Elit Ltd.',
-      'subtitle': 'Transfer money',
-      'amount': '-\$450.00',
-      'color': Colors.lightBlue,
-    },
-    {
-      'title': 'Lectus Sit Amet est',
-      'subtitle': 'Gas & electricity payment',
-      'amount': '-\$239.50',
-      'color': Colors.teal,
-    },
-    {
-      'title': 'Congue Quisque',
-      'subtitle': 'Withdraw money',
-      'amount': '-\$1,500.00',
-      'color': Colors.orange,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    setState(() => isLoading = true);
+
+    try {
+      final data = await TransactionService.getTransactions();
+
+      if (!mounted) return;
+
+      setState(() {
+        transactions = data;
+        filteredTransactions = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  void _filterByType(String type) {
+    setState(() {
+      if (type == 'all') {
+        filteredTransactions = transactions;
+      } else {
+        filteredTransactions = transactions
+            .where((tx) => tx.type == type)
+            .toList();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B4D78),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Color.fromARGB(255, 255, 255, 255),
-          ),
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'TRANSACTION',
-          style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+          'Transactions',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.settings,
-              color: Color.fromARGB(255, 255, 255, 255),
-            ),
+            icon: const Icon(Icons.filter_list, color: AppColors.textSecondary),
             onPressed: () {},
           ),
         ],
       ),
       body: Column(
         children: [
-          const SizedBox(height: 15),
-
+          const SizedBox(height: 16),
           // Tabs
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [_tabButton('COMPLETE', 0), _tabButton('IN PROGRESS', 1)],
-          ),
-
-          const SizedBox(height: 15),
-
-          // Transaction List
-          Expanded(
-            child: ListView.builder(
-              itemCount: transactions.length,
-              itemBuilder: (context, index) {
-                final tx = transactions[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: tx['color'],
-                    radius: 10,
-                  ),
-                  title: Text(
-                    tx['title'],
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(tx['subtitle']),
-                  trailing: Text(
-                    tx['amount'],
-                    style: TextStyle(
-                      color: tx['amount'].startsWith('+')
-                          ? Colors.green
-                          : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Pagination
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.chevron_left),
-                _pageCircle('1', false),
-                _pageCircle('2', true),
-                _pageCircle('3', false),
-                _pageCircle('4', false),
-                _pageCircle('5', false),
-                const Icon(Icons.chevron_right),
+                _tabButton('ALL', 'all'),
+                const SizedBox(width: 8),
+                _tabButton('CREDIT', 'credit'),
+                const SizedBox(width: 8),
+                _tabButton('DEBIT', 'debit'),
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          // Search
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search transactions...',
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                ),
+                filled: true,
+                fillColor: AppColors.surfaceVariant,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Transaction List
+          if (isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (filteredTransactions.isEmpty)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.receipt_long,
+                      size: 64,
+                      color: AppColors.textTertiary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No transactions found',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: filteredTransactions.length,
+                itemBuilder: (context, index) {
+                  final tx = filteredTransactions[index];
+                  final isCredit = tx.type == 'credit';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: AppCard(
+                      hasBorder: false,
+                      child: TransactionTile(
+                        title: tx.description.isNotEmpty
+                            ? tx.description
+                            : (isCredit ? 'Received' : 'Payment'),
+                        subtitle: _formatDate(tx.createdAt),
+                        amount: '\$${tx.amount.toStringAsFixed(2)}',
+                        isPositive: isCredit,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // ---------- Widgets ----------
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final txDate = DateTime(date.year, date.month, date.day);
 
-  Widget _tabButton(String text, int index) {
-    final bool isActive = selectedTab == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedTab = index;
-        });
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.lightBlue : Colors.grey[300],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.black54,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
+    final difference = today.difference(txDate).inDays;
+
+    if (difference == 0) {
+      return 'Today, ${_formatTime(date)}';
+    } else if (difference == 1) {
+      return 'Yesterday, ${_formatTime(date)}';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 
-  Widget _pageCircle(String text, bool active) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: 28,
-      height: 28,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: active ? Colors.lightBlue : Colors.grey[300],
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: active ? Colors.white : Colors.black),
+  String _formatTime(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _tabButton(String text, String filterType) {
+    final bool isActive =
+        (text == 'ALL' && selectedTab == 0) ||
+        (text == 'CREDIT' && selectedTab == 1) ||
+        (text == 'DEBIT' && selectedTab == 2);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            if (text == 'ALL')
+              selectedTab = 0;
+            else if (text == 'CREDIT')
+              selectedTab = 1;
+            else
+              selectedTab = 2;
+          });
+          _filterByType(filterType);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary : AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isActive ? Colors.white : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -1,5 +1,12 @@
-import 'package:banck_app/pages/home_page.dart';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../components/app_cards.dart';
+import '../components/primary_button.dart';
+import '../services/exchange_service.dart';
+import '../services/account_service.dart';
+import '../utils/responsive.dart';
+import 'home_page.dart';
+
 class ExchangePage extends StatefulWidget {
   const ExchangePage({super.key});
 
@@ -8,204 +15,506 @@ class ExchangePage extends StatefulWidget {
 }
 
 class _ExchangePageState extends State<ExchangePage> {
-  String fromCurrency = '\$';
-  String toCurrency = '£';
-
+  String fromCurrency = 'USD';
+  String toCurrency = 'EUR';
   String inputAmount = '';
+  String convertedAmount = '0.00';
+  bool isLoading = false;
+  double fee = 0.0;
+  double balance = 0.0;
+  String? errorMessage;
 
-  // Simple demo exchange rates
-  final Map<String, double> rates = {
-    '\$': 1.0,
-    '£': 0.78,
-    '€': 0.92,
-    '₨': 309.50,
-  };
+  final List<Currency> currencies = ExchangeService.getAvailableCurrencies();
 
-  double get convertedAmount {
-    if (inputAmount.isEmpty) return 0.0;
-
-    final value = double.tryParse(inputAmount) ?? 0.0;
-    return value * (rates[toCurrency]! / rates[fromCurrency]!);
+  @override
+  void initState() {
+    super.initState();
+    _loadBalance();
   }
 
-  void onKeyPressed(String key) {
+  Future<void> _loadBalance() async {
+    final bal = await AccountService.getBalance();
+    setState(() => balance = bal);
+  }
+
+  void _calculateConversion() {
+    if (inputAmount.isEmpty) {
+      setState(() {
+        convertedAmount = '0.00';
+        fee = 0.0;
+        errorMessage = null;
+      });
+      return;
+    }
+
+    final amount = double.tryParse(inputAmount) ?? 0.0;
+
+    // Validate against minimum balance
+    final validation = AccountService.validateWithdrawal(amount);
+    if (validation != null) {
+      setState(() {
+        errorMessage = validation;
+        convertedAmount = '0.00';
+        fee = 0.0;
+      });
+      return;
+    }
+
+    final result = ExchangeService.convert(amount, fromCurrency, toCurrency);
+    final exchangeFee = ExchangeService.calculateFee(amount);
+
+    setState(() {
+      convertedAmount = result.toStringAsFixed(2);
+      fee = exchangeFee;
+      errorMessage = null;
+    });
+  }
+
+  void _onKeyPressed(String key) {
     setState(() {
       if (key == 'X') {
         if (inputAmount.isNotEmpty) {
           inputAmount = inputAmount.substring(0, inputAmount.length - 1);
         }
-      } else {
+      } else if (key == '.') {
+        if (!inputAmount.contains('.')) {
+          inputAmount += key;
+        }
+      } else if (inputAmount.length < 10) {
         inputAmount += key;
       }
+      _calculateConversion();
     });
   }
 
-  void swapCurrencies() {
+  void _swapCurrencies() {
     setState(() {
       final temp = fromCurrency;
       fromCurrency = toCurrency;
       toCurrency = temp;
+      _calculateConversion();
     });
+  }
+
+  Future<void> _performExchange() async {
+    final amount = double.tryParse(inputAmount) ?? 0.0;
+
+    // Validate amount
+    final validation = AccountService.validateWithdrawal(amount);
+    if (validation != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(validation)));
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final converted = double.tryParse(convertedAmount) ?? 0.0;
+
+      // Record the exchange
+      await ExchangeService.recordExchange(
+        amount: amount,
+        fromCurrency: fromCurrency,
+        toCurrency: toCurrency,
+        convertedAmount: converted,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Exchange completed successfully!')),
+      );
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Exchange failed: $e')));
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final redeemable = AccountService.getMaximumRedeemable();
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B4D78),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () async {
-              if (!context.mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
-                (route) => false,
-              );
-            },
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Currency Exchange',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
           ),
-        title: const Text('EXCHANGE', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        actions: const [Icon(Icons.settings, color: Colors.white)],
+        ),
+        centerTitle: false,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 25),
-
-          // Currency icons & swap
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
-              _currencyCircle(fromCurrency, const Color(0xFF0B4D78)),
-              IconButton(
-                icon: const Icon(
-                  Icons.sync_alt,
-                  size: 35,
-                  color: Color(0xFF0B4D78),
+              // Balance display
+              AppCard(
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Available Balance',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          AccountService.formatBalance(balance),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Redeemable Amount',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          AccountService.formatBalance(redeemable),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Minimum Balance (Bank Cost)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          AccountService.formatBalance(
+                            AccountService.getMinimumBalance(),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                onPressed: swapCurrencies,
               ),
-              _currencyCircle(toCurrency, Colors.lightBlue),
-            ],
-          ),
-
-          const SizedBox(height: 25),
-
-          // From field
-          _amountField(
-            currency: fromCurrency,
-            value: inputAmount.isEmpty ? '0.00' : inputAmount,
-            onCurrencyChanged: (val) {
-              setState(() => fromCurrency = val!);
-            },
-          ),
-
-          const SizedBox(height: 10),
-          const Text('CONVERT TO', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 10),
-
-          // To field
-          _amountField(
-            currency: toCurrency,
-            value: convertedAmount.toStringAsFixed(2),
-            onCurrencyChanged: (val) {
-              setState(() => toCurrency = val!);
-            },
-          ),
-
-          const SizedBox(height: 15),
-
-          // Keypad
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 3,
-              padding: const EdgeInsets.all(10),
-              childAspectRatio: 1.4,
-              children: [
-                ...List.generate(9, (i) => _keyButton('${i + 1}')),
-                _keyButton('00'),
-                _keyButton('0'),
-                _keyButton('X'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------- Widgets ----------------
-
-  Widget _currencyCircle(String symbol, Color color) {
-    return CircleAvatar(
-      radius: 30,
-      backgroundColor: color,
-      child: Text(
-        symbol,
-        style: const TextStyle(color: Colors.white, fontSize: 24),
-      ),
-    );
-  }
-
-  Widget _amountField({
-    required String currency,
-    required String value,
-    required ValueChanged<String?> onCurrencyChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: Row(
-        children: [
-          DropdownButton<String>(
-            value: currency,
-            items: const [
-              DropdownMenuItem(value: '\$', child: Text('\$')),
-              DropdownMenuItem(value: '£', child: Text('£')),
-              DropdownMenuItem(value: '€', child: Text('€')),
-              DropdownMenuItem(value: '₨', child: Text('₨')),
-            ],
-            onChanged: onCurrencyChanged,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 24),
+              // Currency Selector
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _currencyDropdown(fromCurrency, (val) {
+                    setState(() {
+                      fromCurrency = val!;
+                      _calculateConversion();
+                    });
+                  }, AppColors.primary),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.swap_horiz,
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: _swapCurrencies,
+                  ),
+                  _currencyDropdown(toCurrency, (val) {
+                    setState(() {
+                      toCurrency = val!;
+                      _calculateConversion();
+                    });
+                  }, AppColors.secondary),
+                ],
               ),
-              child: Center(
+              const SizedBox(height: 32),
+              // Amount Fields
+              AppCard(
+                child: Column(
+                  children: [
+                    _amountField(
+                      'FROM',
+                      fromCurrency,
+                      inputAmount.isEmpty ? '0.00' : inputAmount,
+                    ),
+                    const Divider(height: 32),
+                    _amountField(
+                      'TO',
+                      toCurrency,
+                      convertedAmount,
+                      isReadOnly: true,
+                    ),
+                  ],
+                ),
+              ),
+              // Error message
+              if (errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              // Fee display
+              if (fee > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Exchange Fee (1%)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        AccountService.formatBalance(fee),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 24),
+              // Keypad
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1.8,
+                ),
+                itemCount: 12,
+                itemBuilder: (context, index) {
+                  final keys = [
+                    '1',
+                    '2',
+                    '3',
+                    '4',
+                    '5',
+                    '6',
+                    '7',
+                    '8',
+                    '9',
+                    '.',
+                    '0',
+                    'X',
+                  ];
+                  return _keypadButton(keys[index]);
+                },
+              ),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'EXCHANGE NOW',
+                onPressed: isLoading || errorMessage != null
+                    ? null
+                    : _performExchange,
+                isLoading: isLoading,
+              ),
+              const SizedBox(height: 16),
+              // Exchange rate info
+              Center(
                 child: Text(
-                  value,
+                  '1 ${Currency.getByCode(fromCurrency).code} = ${ExchangeService.getRate(fromCurrency, toCurrency).toStringAsFixed(4)} ${Currency.getByCode(toCurrency).code}',
                   style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _currencyDropdown(
+    String value,
+    ValueChanged<String?> onChanged,
+    Color color,
+  ) {
+    final currency = Currency.getByCode(value);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButton<String>(
+        value: value,
+        underline: const SizedBox(),
+        onChanged: onChanged,
+        items: currencies.map((c) {
+          return DropdownMenuItem(
+            value: c.code,
+            child: Text('${c.code} (${c.symbol})'),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _amountField(
+    String label,
+    String currency,
+    String value, {
+    bool isReadOnly = false,
+  }) {
+    final curr = Currency.getByCode(currency);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer,
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(12),
+                ),
+              ),
+              child: Text(
+                curr.symbol,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            Expanded(
+              child: TextFormField(
+                initialValue: value,
+                readOnly: isReadOnly,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  filled: !isReadOnly,
+                  fillColor: isReadOnly
+                      ? Colors.transparent
+                      : AppColors.surface,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(12),
+                    ),
+                    borderSide: BorderSide(
+                      color: isReadOnly
+                          ? Colors.transparent
+                          : AppColors.outline,
+                      width: 1,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(12),
+                    ),
+                    borderSide: BorderSide(
+                      color: isReadOnly
+                          ? Colors.transparent
+                          : AppColors.outline,
+                      width: 1,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _keyButton(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(6),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0B4D78),
-          foregroundColor: Colors.white,
-        ),
-        onPressed: () => onKeyPressed(text),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+  Widget _keypadButton(String text) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: text == 'X'
+            ? AppColors.accentContainer
+            : AppColors.primary,
+        foregroundColor: text == 'X' ? AppColors.accent : Colors.white,
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      onPressed: () => _onKeyPressed(text),
+      child: Text(
+        text == 'X' ? '⌫' : text,
+        style: TextStyle(
+          fontSize: text == 'X' ? 20 : 24,
+          fontWeight: FontWeight.w600,
+          color: text == 'X' ? AppColors.accent : Colors.white,
         ),
       ),
     );

@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../theme/app_colors.dart';
+import '../components/app_cards.dart';
+import '../services/profile_service.dart';
+import '../services/account_service.dart';
+import '../services/transaction_service.dart';
+import '../utils/responsive.dart';
 import 'login_page.dart';
 import 'account_page.dart';
 import 'transaction_page.dart';
 import 'transaction_history_page.dart';
 import 'payment.dart';
 import 'exchange_page.dart';
-import '/services/profile_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,234 +23,498 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String name = 'User';
   String email = '';
+  double balance = 0.0;
+  bool isLoading = true;
+  List<Transaction> recentTransactions = [];
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadData();
   }
 
-  Future<void> _loadProfile() async {
-    final profile = await ProfileService.getProfile();
-    final user = Supabase.instance.client.auth.currentUser;
+  Future<void> _loadData() async {
+    setState(() => isLoading = true);
 
-    if (!mounted) return;
+    try {
+      // Load profile
+      final profile = await ProfileService.getProfile();
 
-    setState(() {
-      name = profile?['name'] ?? 'User';
-      email = user?.email ?? '';
-    });
+      // Load account balance
+      final balance = await AccountService.getBalance();
+
+      // Load recent transactions
+      final transactions = await TransactionService.getTransactions(limit: 5);
+
+      if (!mounted) return;
+
+      setState(() {
+        name = profile?['name'] ?? 'User';
+        email = profile?['email'] ?? '';
+        this.balance = balance;
+        recentTransactions = transactions;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: _buildAppDrawer(context, name, email),
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B4D78),
-        elevation: 0,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AccountPage()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
-
-              if (!context.mounted) return;
-
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
-      ),
-
-      body: Column(
-        children: [
-          // 🔹 TOP PROFILE SECTION
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(bottom: 25),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0B4D78),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-            child: Column(
-              children: [
-                const CircleAvatar(
-                  radius: 45,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person,
-                      size: 50, color: Color(0xFF0B4D78)),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  name.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  email,
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // BALANCE CARD
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 30),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 10),
-              ],
-            ),
-            child: Column(
-              children: [
-                const Text('BALANCE', style: TextStyle(color: Colors.grey)),
-                const SizedBox(height: 10),
-                const Text(
-                  '\$4,180.20',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 15),
-                SizedBox(
-                  width: 140,
-                  height: 40,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0B4D78),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TransactionPage(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'TRANSFER',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 30),
-
-          // LATEST TRANSACTIONS
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'LATEST TRANSACTIONS',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const TransactionHistoryPage(),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'more >>',
-                    style: TextStyle(
-                      color: Colors.lightBlue,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          const Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30),
-              child: _TransactionList(),
-            ),
-          ),
-        ],
+      drawer: _buildAppDrawer(context),
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar(),
+      body: ResponsiveLayout(
+        mobile: _buildMobileLayout(),
+        tablet: _buildDesktopLayout(),
+        desktop: _buildDesktopLayout(),
+        wide: _buildDesktopLayout(),
       ),
     );
   }
 
-  // ---------------- DRAWER ----------------
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: AppColors.surface,
+      elevation: 0,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
+      title: const Text(
+        'Dashboard',
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      centerTitle: false,
+      actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.textSecondary,
+          ),
+          onPressed: () {},
+        ),
+        IconButton(
+          icon: const Icon(Icons.settings, color: AppColors.textSecondary),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AccountPage()),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
-  Widget _buildAppDrawer(
-      BuildContext context, String name, String email) {
-    return Drawer(
-      child: Column(
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF0B4D78)),
-            child: Column(
+  Widget _buildMobileLayout() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ProfileHeader(name: name, email: email),
+            const SizedBox(height: 24),
+            BalanceCard(
+              label: 'TOTAL BALANCE',
+              amount: AccountService.formatBalance(balance),
+              gradientColors: AppColors.primaryGradient,
+            ),
+            const SizedBox(height: 24),
+            const SectionHeader(title: 'Quick Actions', actionText: 'See All'),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 100,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  QuickActionItem(
+                    label: 'Transfer',
+                    icon: Icons.swap_horiz,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TransactionPage(),
+                      ),
+                    ),
+                    backgroundColor: AppColors.primaryContainer,
+                    iconColor: AppColors.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  QuickActionItem(
+                    label: 'Pay Bills',
+                    icon: Icons.payment,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PaymentPage()),
+                    ),
+                    backgroundColor: AppColors.secondaryContainer,
+                    iconColor: AppColors.secondary,
+                  ),
+                  const SizedBox(width: 12),
+                  QuickActionItem(
+                    label: 'Exchange',
+                    icon: Icons.currency_exchange,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ExchangePage()),
+                    ),
+                    backgroundColor: AppColors.accentContainer,
+                    iconColor: AppColors.accent,
+                  ),
+                  const SizedBox(width: 12),
+                  QuickActionItem(
+                    label: 'History',
+                    icon: Icons.history,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TransactionHistoryPage(),
+                      ),
+                    ),
+                    backgroundColor: const Color(0xFFFFF3E0),
+                    iconColor: const Color(0xFFFF9800),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SectionHeader(
+              title: 'Recent Transactions',
+              actionText: 'View All',
+              onActionTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TransactionHistoryPage(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildTransactionList(),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 35),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      BalanceCard(
+                        label: 'TOTAL BALANCE',
+                        amount: AccountService.formatBalance(balance),
+                        gradientColors: AppColors.primaryGradient,
+                        trailing: IconButton(
+                          icon: const Icon(
+                            Icons.visibility,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {},
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const SectionHeader(
+                        title: 'Quick Actions',
+                        actionText: 'See All',
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 120,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            QuickActionItem(
+                              label: 'Transfer',
+                              icon: Icons.swap_horiz,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const TransactionPage(),
+                                ),
+                              ),
+                              backgroundColor: AppColors.primaryContainer,
+                              iconColor: AppColors.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            QuickActionItem(
+                              label: 'Pay Bills',
+                              icon: Icons.payment,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PaymentPage(),
+                                ),
+                              ),
+                              backgroundColor: AppColors.secondaryContainer,
+                              iconColor: AppColors.secondary,
+                            ),
+                            const SizedBox(width: 12),
+                            QuickActionItem(
+                              label: 'Exchange',
+                              icon: Icons.currency_exchange,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ExchangePage(),
+                                ),
+                              ),
+                              backgroundColor: AppColors.accentContainer,
+                              iconColor: AppColors.accent,
+                            ),
+                            const SizedBox(width: 12),
+                            QuickActionItem(
+                              label: 'History',
+                              icon: Icons.history,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const TransactionHistoryPage(),
+                                ),
+                              ),
+                              backgroundColor: const Color(0xFFFFF3E0),
+                              iconColor: const Color(0xFFFF9800),
+                            ),
+                            const SizedBox(width: 12),
+                            QuickActionItem(
+                              label: 'Statements',
+                              icon: Icons.receipt_long,
+                              onTap: () {},
+                              backgroundColor: const Color(0xFFE3F2FD),
+                              iconColor: const Color(0xFF2196F3),
+                            ),
+                            const SizedBox(width: 12),
+                            QuickActionItem(
+                              label: 'Support',
+                              icon: Icons.support_agent,
+                              onTap: () {},
+                              backgroundColor: const Color(0xFFFCE4EC),
+                              iconColor: const Color(0xFFE91E63),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SectionHeader(
+                        title: 'Recent Transactions',
+                        actionText: 'View All',
+                        onActionTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TransactionHistoryPage(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTransactionList(),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  name,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                ),
-                Text(
-                  email,
-                  style: const TextStyle(color: Colors.white70),
+                const SizedBox(width: 24),
+                SizedBox(
+                  width: 320,
+                  child: Column(
+                    children: [
+                      ProfileHeader(
+                        name: name,
+                        email: email,
+                        onEditTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AccountPage(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Account Summary',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildAccountSummaryItem(
+                              'Account Number',
+                              '00 123 456',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildAccountSummaryItem('Account Type', 'Premium'),
+                            const SizedBox(height: 12),
+                            _buildAccountSummaryItem('Branch', 'Main Street'),
+                            const SizedBox(height: 12),
+                            _buildAccountSummaryItem(
+                              'Status',
+                              'Active',
+                              valueColor: AppColors.success,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
 
+  Widget _buildTransactionList() {
+    if (recentTransactions.isEmpty) {
+      return AppCard(
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Text(
+              'No recent transactions',
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return AppCard(
+      child: Column(
+        children: recentTransactions.map((tx) {
+          final isCredit = tx.type == 'credit';
+          return Column(
+            children: [
+              TransactionTile(
+                title: tx.description.isNotEmpty
+                    ? tx.description
+                    : (isCredit ? 'Received' : 'Payment'),
+                subtitle: _formatDate(tx.createdAt),
+                amount:
+                    '${isCredit ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
+                isPositive: isCredit,
+              ),
+              if (tx != recentTransactions.last) const Divider(height: 1),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildAccountSummaryItem(
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppDrawer(BuildContext context) {
+    return Drawer(
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: AppColors.primaryGradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  AccountService.formatBalance(balance),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.dashboard_outlined),
+            title: const Text('Dashboard'),
+            onTap: () => Navigator.pop(context),
+          ),
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text('Payments'),
@@ -257,7 +525,6 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-
           ListTile(
             leading: const Icon(Icons.swap_horiz),
             title: const Text('Transactions'),
@@ -270,7 +537,6 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-
           ListTile(
             leading: const Icon(Icons.currency_exchange),
             title: const Text('Exchange Money'),
@@ -281,70 +547,21 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
+          const Spacer(),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: () async {
+              await Supabase.instance.client.auth.signOut();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            },
+          ),
         ],
-      ),
-    );
-  }
-}
-
-// ---------------- TRANSACTION LIST ----------------
-
-class _TransactionList extends StatelessWidget {
-  const _TransactionList();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: const [
-        TransactionTile(
-          title: 'Lorem Ipsum Company',
-          subtitle: 'Received payment',
-          amount: '\$2,030.80',
-        ),
-        TransactionTile(
-          title: 'Auctor Elit Ltd.',
-          subtitle: 'Transfer money',
-          amount: '-\$450.00',
-        ),
-        TransactionTile(
-          title: 'Lectus Sit Amet est',
-          subtitle: 'Gas & electricity payment',
-          amount: '-\$239.50',
-        ),
-        TransactionTile(
-          title: 'Congue Quisque',
-          subtitle: 'Withdraw money',
-          amount: '-\$1,500.00',
-        ),
-      ],
-    );
-  }
-}
-
-class TransactionTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String amount;
-
-  const TransactionTile({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.amount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: const CircleAvatar(
-        backgroundColor: Color(0xFF0B4D78),
-        radius: 6,
-      ),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: Text(
-        amount,
-        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
     );
   }

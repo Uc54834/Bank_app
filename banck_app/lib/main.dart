@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'pages/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'theme/app_theme.dart';
+import 'pages/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Bank App',
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light,
       home: const LoginPage(),
     );
   }
